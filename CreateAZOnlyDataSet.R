@@ -1,4 +1,4 @@
-d = read.csv('recs2020_public_v5.csv')
+d = recs2020_public_v5
 
 #Filter data for homes in AZ
 isArizona = d[,6]=="Arizona"
