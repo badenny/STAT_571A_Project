@@ -41,6 +41,15 @@ recs2020_AZ %>% select(matches("PMP")) %>% sapply(FUN=function(x) plot(x, KWH, y
 
 recs2020_AZ %>% select(matches("PMP")) %>% sapply(FUN=function(x) plot(factor(1*(x>0), levels=c(0,1)), KWH, ylab="KWH"))
 
+binaried_PMP <- recs2020_AZ %>% select(matches("PMP")) %>% sapply(FUN=function(x) factor(1*(x>0)+1*(x>1000), levels=c(0,1,2)))
+
+regKWH <- lm((KWH)^(1/2)~., data=data.frame(KWH=KWH, binaried_PMP[,1]))
+summary(regKWH)
+
+regKWH <- lm((KWH)^(1/2)~., data=data.frame(KWH=KWH, recs2020_AZ$KWHPLPMP))
+summary(regKWH)
+
+
 ## By inspecting the linear relationship of any pair for the two type of "PMP", they possess almost same information.
 panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 {
@@ -62,7 +71,9 @@ recs2020_AZ[, integer_col]
 
 discrete_col <- c("BEDROOMS", "NCOMBATH", "TOTROOMS", "MONPOOL", "FUELPOOL", "NUMFRIG", "TVCOLOR", "SQFTRANGE", "ZFUELPOOL", "ZMONPOOL", "ZPOOLPUMP")
 
-recs2020_AZ %>% select(discrete_col) 
+df_recs_discrete <- recs2020_AZ %>% select(discrete_col) 
+pairs(df_recs_discrete)
+
 
 ## What does "-2" mean in these columns?
 ## If the number of levels is not large (less than five), transform it as a factor, or ordered factor may provide the better inference of model parameters.
