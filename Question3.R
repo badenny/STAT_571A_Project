@@ -81,8 +81,6 @@ daz2[[select_col]][which(daz[[select_col]]==7)] = "4"
 daz2[[select_col]][which(daz[[select_col]]<=0|daz[[select_col]]==99)] = "5"
 
 
-
-
 df_cat <- daz2 %>% select(ACEQUIPM_PUB, TYPEHUQ, ADQINSUL, KWHPLPMP, FUELHEAT)
 
 df_cat2 <- sapply(names(annot), FUN=function(x) factor(df_cat[[x]], levels=1:length(annot[[x]]), labels=paste0(".",annot[[x]])),  simplify = F) %>% as.data.frame()
@@ -124,9 +122,11 @@ lmfit3 <- lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT, data=selecte
 X <- model.matrix(sqrt(KWH)~., data=selected_df)[,-1]
 Y <- sqrt(selected_df$KWH)
 
-### Five-fold CV
+### ten-folds CV
 set.seed(1000)
-lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = 5)
+lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = 10)
+
+
 
 ## Minimum CV rule ##
 lambda <- lasso_cvfit$lambda.min; cvm <- min(lasso_cvfit$cvm)
@@ -138,7 +138,7 @@ coef.glmnet(bestlasso_fit)
 selected_pred1 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
 selected_pred1
 
-## OnSD CV rule ##
+## OnSE CV rule ##
 ind_cv <- which.min(lasso_cvfit$cvm)
 cvm_onesd <- lasso_cvfit$cvm[ind_cv]  + lasso_cvfit$cvsd[ind_cv]
 
@@ -151,6 +151,18 @@ lasso_cvfit$cvm[lambda_ind]
 coef.glmnet(bestlasso_fit)
 selected_pred2 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
 selected_pred2
+
+par(mar=c(4,4,1,1))
+plot(lasso_cvfit$lambda, lasso_cvfit$cvm, type="b", col="blue", 
+     xlim = c(min(lasso_cvfit$lambda), max(lasso_cvfit$lambda)), ylim=c(500, 1000), 
+     xlab=bquote(lambda), ylab="Mean CV error", main="One standard-error bars with ten-fold CV")
+
+## One standard-error bar
+abline(h=cvm_onesd, col="red")
+text(x=15, y=cvm_onesd, labels=paste0("One SE rule thresholds=", round(cvm_onesd)))
+arrows(lasso_cvfit$lambda, lasso_cvfit$cvup, lasso_cvfit$lambda, 
+       lasso_cvfit$cvlo, angle = 90, code = 3, 
+       length = 0.05, col = "black")
 
 
 
