@@ -36,7 +36,7 @@ annot[["TYPEHUQ"]] = c("Moblie home", "Single-family house detached from any oth
 
 annot[["ADQINSUL"]] = c("Well insulated", "dequately insulated", "Poorly insulated", "Not insulated")
 annot[["KWHPLPMP"]] = c("No", "Yes")
-annot[["FUELHEAT"]] = c("Natural gas from underground pipes", "Fuel oil", "Wood or pellets", "Electricity", "Other")
+annot[["FUELHEAT"]] = c("Electricity", "Natural gas from underground pipes", "Propane", "Wood or pellets", "Others") #include "Fuel oil" in "Others"
 
 cat_columns <- c("ACEQUIPM_PUB", "TYPEHUQ", "ADQINSUL", "KWHPLPMP", "FUELHEAT")
 
@@ -63,8 +63,8 @@ for(i in 1:length(annot[[select_col]])){
 }
 
 select_col <- cat_columns[4]  # KWHPLPMP
-daz2[[select_col]][which(daz[[select_col]]==0)] = 0
-daz2[[select_col]][which(daz[[select_col]]>0)] = 1
+daz2[[select_col]][which(daz[[select_col]]==0)] = "1"
+daz2[[select_col]][which(daz[[select_col]]>0)] = "2"
 
 
 for(i in 1:length(annot[[select_col]])){
@@ -73,18 +73,22 @@ for(i in 1:length(annot[[select_col]])){
 
 select_col <- cat_columns[5]  # FUELHEAT
 
-daz2[[select_col]][which(daz[[select_col]]==1)] = 1
-daz2[[select_col]][which(daz[[select_col]]==2)] = 2
-daz2[[select_col]][which(daz[[select_col]]==3)] = 3
-daz2[[select_col]][which(daz[[select_col]]==5)] = 4
-daz2[[select_col]][which(daz[[select_col]]<=0)] = 5
+daz2[[select_col]][which(daz[[select_col]]==5)] = "1"
+daz2[[select_col]][which(daz[[select_col]]==1)] = "2"
+daz2[[select_col]][which(daz[[select_col]]==2)] = "3"
+daz2[[select_col]][which(daz[[select_col]]==3)] = "5"
+daz2[[select_col]][which(daz[[select_col]]==7)] = "4"
+daz2[[select_col]][which(daz[[select_col]]<=0|daz[[select_col]]==99)] = "5"
 
 
-daz2 %>% select(ACEQUIPM_PUB, TYPEHUQ, ADQINSUL, KWHPLPMP, FUELHEAT) %>% apply(2, as.factor)
 
 
-selected_df <- daz2 %>% select(KWH, SQFTEST, LGTINLED, LGTINCFL, LGTINCAN, LGTIN1TO4, LGTIN4TO8, LGTINMORE8) %>% 
-  cbind(daz2 %>% select(ACEQUIPM_PUB, TYPEHUQ, ADQINSUL, KWHPLPMP, FUELHEAT) %>% apply(2, as.factor))
+df_cat <- daz2 %>% select(ACEQUIPM_PUB, TYPEHUQ, ADQINSUL, KWHPLPMP, FUELHEAT)
+
+df_cat2 <- sapply(names(annot), FUN=function(x) factor(df_cat[[x]], levels=1:length(annot[[x]]), labels=paste0(".",annot[[x]])),  simplify = F) %>% as.data.frame()
+
+selected_df <- daz2 %>% select(KWH, SQFTEST, LGTINLED, LGTINCFL, LGTINCAN, LGTIN1TO4, LGTIN4TO8, LGTINMORE8) %>% cbind(df_cat2)
+str(selected_df)
 
 
 lmfit1 <- lm(KWH ~., data=selected_df)
@@ -109,13 +113,11 @@ p <- n - lmfit2$df.residual ## p=20
 
 step(lmfit2, direction="backward", k=log(n)) ## Use BIC formula for AIC
 
-
 ## 2. Stepwise selection
 step(lmfit2, direction="both", k=log(n)) 
 
 ## Both methods give consistent results for "sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + ACEQUIPM_PUB + KWHPLPMP + FUELHEAT
-lmfit3 <- lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + ACEQUIPM_PUB + 
-               KWHPLPMP + FUELHEAT, data=selected_df)
+lmfit3 <- lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT, data=selected_df)
 
 ## 3. LASSO
 
@@ -126,10 +128,9 @@ Y <- sqrt(selected_df$KWH)
 set.seed(1000)
 lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = 5)
 
-
 ## Minimum CV rule ##
 lambda <- lasso_cvfit$lambda.min; cvm <- min(lasso_cvfit$cvm)
-lambda
+lambda;cvm
 
 bestlasso_fit <- glmnet(x=X, y=Y, alpha=1, lambda=lambda)
 
@@ -142,10 +143,10 @@ ind_cv <- which.min(lasso_cvfit$cvm)
 cvm_onesd <- lasso_cvfit$cvm[ind_cv]  + lasso_cvfit$cvsd[ind_cv]
 
 lasso_cvfit$cvm < cvm_onesd
-lambda <- lasso_cvfit$lambda[min(which(lasso_cvfit$cvm < cvm_onesd))]
+lambda_ind <- min(which(lasso_cvfit$cvm < cvm_onesd))
+bestlasso_fit <- glmnet(x=X, y=Y, alpha=1, lambda=lasso_cvfit$lambda[lambda_ind])
 
-
-bestlasso_fit <- glmnet(x=X, y=Y, alpha=1, lambda=lambda)
+lasso_cvfit$cvm[lambda_ind] 
 
 coef.glmnet(bestlasso_fit)
 selected_pred2 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
@@ -154,12 +155,11 @@ selected_pred2
 
 
 ## LOOCV of selection methods
+formula3 <- sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT
+lmfit3 <- lm(formula3, data=selected_df)
 
-lmfit3 <- lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + ACEQUIPM_PUB + 
-               KWHPLPMP + FUELHEAT, data=selected_df)
 
-
-lmcv <- function(D, folds=5){
+lmcv <- function(D, formula., folds=5){
   
   nD = nrow(D)
   if(nD < folds) stop("sample size should be larger than a given fold size")
@@ -177,7 +177,7 @@ lmcv <- function(D, folds=5){
     n_cv = nrow(cv)
     
     ## calculate estimates based on partitions for training
-    trlm = lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP, data=train)
+    trlm = lm(formula., data=train)
     
     ## calculate CV error based on the estimates and the CV partition
     precv = predict(trlm, newdata=cv)
@@ -193,7 +193,5 @@ lmcv <- function(D, folds=5){
   return(temp)
 }
 
-lmcv(selected_df, folds=n)
+lmcv(selected_df, formula3, folds=n)
 
-set.seed(1000)
-lmcv(selected_df, folds=5)
