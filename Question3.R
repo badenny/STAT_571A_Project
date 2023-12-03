@@ -183,6 +183,63 @@ text(x=2.5+lasso_cvfit$lambda[lambda_ind], y=950, labels=expression("" %<-% "Opt
 
 
 
+
+## LOOCV of selection methods
+formula3 <- sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT
+lmfit3 <- lm(formula3, data=selected_df)
+nullformula <- sqrt(KWH) ~ 1
+
+
+lmcv <- function(D, formula., folds=5, seeds=2023){
+  
+  nD = nrow(D)
+  if(nD < folds) stop("sample size should be larger than a given fold size")
+  
+  dim_p = ncol(D)-1
+  
+  Dpar = floor(nD/folds)
+  set.seed(seeds)
+  random_par = c(sample(rep(1:folds, each = Dpar), Dpar*folds, replace=F),
+                 sample(1:folds, nD - Dpar*folds, replace=F))
+  
+  cv_error_vec = vector("numeric", length=folds)
+  for(i in 1:folds){
+    train = D[random_par!=i, ]
+    cv = D[random_par==i, ]
+    n_cv = nrow(cv)
+    
+    ## calculate estimates based on partitions for training
+    trlm = lm(formula., data=train)
+    
+    ## calculate CV error based on the estimates and the CV partition
+    precv = predict(trlm, newdata=cv)
+    cv_error_vec[i] = sum((sqrt(cv$KWH) - precv)^2)/n_cv 
+  }
+  
+  temp = NULL
+  temp$cvm = mean(cv_error_vec)
+  temp$folds = folds
+  temp$n_sample = nD
+  temp$n_partitions = table(random_par)
+  
+  return(temp)
+}
+
+lmcv_loocv <- lmcv(selected_df, formula3, folds=n)
+null_loocv <- lmcv(selected_df, nullformula, seeds=3000)
+summary(lmfit3)
+
+
+## Comparing prediction performance in terms of LOOCV
+
+null_cv <- null_loocv$cvm
+
+cvm / null_cv
+cvm_onesd / null_cv
+lmcv_loocv$cvm / null_cv
+
+
+
 ### Ten folds
 set.seed(1000)
 lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = 10)
@@ -234,45 +291,4 @@ abline(v=lasso_cvfit$lambda[lambda_ind], col="green")
 text(x=2.5+lasso_cvfit$lambda[lambda_ind], y=950, labels=expression("" %<-% "Optimal model"))
 
 
-## LOOCV of selection methods
-formula3 <- sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT
-lmfit3 <- lm(formula3, data=selected_df)
-
-selected_pred2
-lmcv <- function(D, formula., folds=5, seeds=2023){
-  
-  nD = nrow(D)
-  if(nD < folds) stop("sample size should be larger than a given fold size")
-  
-  dim_p = ncol(D)-1
-  
-  Dpar = floor(nD/folds)
-  set.seed(seeds)
-  random_par = c(sample(rep(1:folds, each = Dpar), Dpar*folds, replace=F),
-                 sample(1:folds, nD - Dpar*folds, replace=F))
-  
-  cv_error_vec = vector("numeric", length=folds)
-  for(i in 1:folds){
-    train = D[random_par!=i, ]
-    cv = D[random_par==i, ]
-    n_cv = nrow(cv)
-    
-    ## calculate estimates based on partitions for training
-    trlm = lm(formula., data=train)
-    
-    ## calculate CV error based on the estimates and the CV partition
-    precv = predict(trlm, newdata=cv)
-    cv_error_vec[i] = sum((sqrt(cv$KWH) - precv)^2)/n_cv 
-  }
-  
-  temp = NULL
-  temp$cvm = mean(cv_error_vec)
-  temp$folds = folds
-  temp$n_sample = nD
-  temp$n_partitions = table(random_par)
-  
-  return(temp)
-}
-
-lmcv(selected_df, formula3, folds=n)
 
