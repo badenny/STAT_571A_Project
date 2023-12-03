@@ -88,7 +88,7 @@ df_cat2 <- sapply(names(annot), FUN=function(x) factor(df_cat[[x]], levels=1:len
 selected_df <- daz2 %>% select(KWH, SQFTEST, LGTINLED, LGTINCFL, LGTINCAN, LGTIN1TO4, LGTIN4TO8, LGTINMORE8) %>% cbind(df_cat2)
 str(selected_df)
 
-
+colnames(selected_df)
 lmfit1 <- lm(KWH ~., data=selected_df)
 
 par(mfrow=c(2,2))
@@ -122,10 +122,70 @@ lmfit3 <- lm(sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT, data=selecte
 X <- model.matrix(sqrt(KWH)~., data=selected_df)[,-1]
 Y <- sqrt(selected_df$KWH)
 
-### ten-folds CV
+### LOOCV
+set.seed(1000)
+lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = n)
+
+
+
+## Minimum CV rule ##
+lambda <- lasso_cvfit$lambda.min; cvm <- min(lasso_cvfit$cvm)
+lambda;cvm
+
+bestlasso_fit <- glmnet(x=X, y=Y, alpha=1, lambda=lambda)
+
+coef.glmnet(bestlasso_fit)
+selected_pred1 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
+cat(selected_pred1, sep=", ")
+
+## OnSE CV rule ##
+ind_cv <- which.min(lasso_cvfit$cvm)
+cvm_onesd <- lasso_cvfit$cvm[ind_cv]  + lasso_cvfit$cvsd[ind_cv]
+
+lasso_cvfit$cvm < cvm_onesd
+lambda_ind <- min(which(lasso_cvfit$cvm < cvm_onesd))
+bestlasso_fit <- glmnet(x=X, y=Y, alpha=1, lambda=lasso_cvfit$lambda[lambda_ind])
+
+lasso_cvfit$cvm[lambda_ind] 
+
+coef.glmnet(bestlasso_fit)
+selected_pred2 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
+selected_pred2
+
+par(mfrow=c(1,1), mar=c(4,4,1,1))
+plot(lasso_cvfit$lambda, lasso_cvfit$cvm, type="b", col="blue", 
+     xlim = c(min(lasso_cvfit$lambda), max(lasso_cvfit$lambda)), ylim=c(500, 1000), 
+     xlab=bquote(lambda), ylab="Mean CV error", main="Minimum LOOCV rule")
+abline(v=lasso_cvfit$lambda[ind_cv], col="green")
+text(x=2.5+lasso_cvfit$lambda[ind_cv], y=950, labels=expression("" %<-% "Optimal model"))
+text(x=7+lasso_cvfit$lambda[ind_cv], y=900, labels=
+       paste0("sqrt(KWH)~", paste0(selected_pred1[2:5], sep="+", collapse="")), cex=0.75)
+text(x=7+lasso_cvfit$lambda[ind_cv], y=850, labels=
+       paste0(paste0(selected_pred1[6:7], sep="+", collapse=""),"..."), cex=0.75)
+text(x=4+lasso_cvfit$lambda[ind_cv], y=800, labels=paste0("Number of parameters=", length(selected_pred1)))
+
+par(mfrow=c(1,1), mar=c(4,4,1,1))
+plot(lasso_cvfit$lambda, lasso_cvfit$cvm, type="b", col="blue", 
+     xlim = c(min(lasso_cvfit$lambda), max(lasso_cvfit$lambda)), ylim=c(500, 1000), 
+     xlab=bquote(lambda), ylab="Mean CV error", main="One standard-error rule with LOOCV")
+
+## One standard-error bar
+abline(h=cvm_onesd, col="red")
+text(x=15, y=cvm_onesd, labels=paste0("One SE rule thresholds=", round(cvm_onesd)))
+arrows(lasso_cvfit$lambda, lasso_cvfit$cvup, lasso_cvfit$lambda, 
+       lasso_cvfit$cvlo, angle = 90, code = 3, 
+       length = 0.05, col = "black")
+abline(v=lasso_cvfit$lambda[lambda_ind], col="green")
+text(x=4+lasso_cvfit$lambda[lambda_ind], y=850, labels=paste0("Number of parameters=", length(selected_pred2)))
+text(x=4.5+lasso_cvfit$lambda[lambda_ind], y=900, labels=
+       paste0("sqrt(KWH)~", paste0(selected_pred2[2:3], sep="+", collapse=""),"..."), cex=0.75)
+text(x=2.5+lasso_cvfit$lambda[lambda_ind], y=950, labels=expression("" %<-% "Optimal model"))
+
+
+
+### Ten folds
 set.seed(1000)
 lasso_cvfit <- cv.glmnet(x=X, y=Y, alpha=1, nfolds = 10)
-
 
 
 ## Minimum CV rule ##
@@ -152,10 +212,17 @@ coef.glmnet(bestlasso_fit)
 selected_pred2 <- rownames(coef.glmnet(bestlasso_fit))[as.vector(coef.glmnet(bestlasso_fit))!=0]
 selected_pred2
 
-par(mar=c(4,4,1,1))
+par(mfrow=c(1,1), mar=c(4,4,1,1))
 plot(lasso_cvfit$lambda, lasso_cvfit$cvm, type="b", col="blue", 
      xlim = c(min(lasso_cvfit$lambda), max(lasso_cvfit$lambda)), ylim=c(500, 1000), 
-     xlab=bquote(lambda), ylab="Mean CV error", main="One standard-error bars with ten-fold CV")
+     xlab=bquote(lambda), ylab="Mean CV error", main="Minimum ten-folds CV rule")
+abline(v=lasso_cvfit$lambda[ind_cv], col="green")
+text(x=2.5+lasso_cvfit$lambda[ind_cv], y=950, labels=expression("" %<-% "Optimal model"))
+
+par(mfrow=c(1,1), mar=c(4,4,1,1))
+plot(lasso_cvfit$lambda, lasso_cvfit$cvm, type="b", col="blue", 
+     xlim = c(min(lasso_cvfit$lambda), max(lasso_cvfit$lambda)), ylim=c(500, 1000), 
+     xlab=bquote(lambda), ylab="Mean CV error", main="One standard-error rule with ten-folds CV")
 
 ## One standard-error bar
 abline(h=cvm_onesd, col="red")
@@ -163,15 +230,16 @@ text(x=15, y=cvm_onesd, labels=paste0("One SE rule thresholds=", round(cvm_onesd
 arrows(lasso_cvfit$lambda, lasso_cvfit$cvup, lasso_cvfit$lambda, 
        lasso_cvfit$cvlo, angle = 90, code = 3, 
        length = 0.05, col = "black")
-
+abline(v=lasso_cvfit$lambda[lambda_ind], col="green")
+text(x=2.5+lasso_cvfit$lambda[lambda_ind], y=950, labels=expression("" %<-% "Optimal model"))
 
 
 ## LOOCV of selection methods
 formula3 <- sqrt(KWH) ~ SQFTEST + LGTIN4TO8 + KWHPLPMP + FUELHEAT
 lmfit3 <- lm(formula3, data=selected_df)
 
-
-lmcv <- function(D, formula., folds=5){
+selected_pred2
+lmcv <- function(D, formula., folds=5, seeds=2023){
   
   nD = nrow(D)
   if(nD < folds) stop("sample size should be larger than a given fold size")
@@ -179,6 +247,7 @@ lmcv <- function(D, formula., folds=5){
   dim_p = ncol(D)-1
   
   Dpar = floor(nD/folds)
+  set.seed(seeds)
   random_par = c(sample(rep(1:folds, each = Dpar), Dpar*folds, replace=F),
                  sample(1:folds, nD - Dpar*folds, replace=F))
   
