@@ -1,7 +1,7 @@
 ## Welcome to Business Finance Team 2
 This is our repository for STAT 571A Project, Fall 2023
 
-Our topic is insights from the US Residential Energy Consumption Survey.
+Our topic is "Insights from the US Residential Energy Consumption Survey."
 
 ## Data source:
 https://www.eia.gov/consumption/residential/data/2020/index.php?view=microdata
