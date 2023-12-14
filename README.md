@@ -4,8 +4,9 @@ This is our repository for STAT 571A Project, Fall 2023
 ## Data source:
 https://www.eia.gov/consumption/residential/data/2020/index.php?view=microdata
 
-rawdata: `recs2020_public_v5.csv`
+Rawdata: `recs2020_public_v5.csv`
 
+Metadata for variable description:  ``
 ## Main Questions:
 ### Question (1)
 What is the relationship between home size, home quality, air conditioning and electricity
