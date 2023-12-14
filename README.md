@@ -1,8 +1,7 @@
-# STAT_571A_Project
-Project for STAT 571A Fall 2023
+## Welcome to Busincess Finance Team 2
+This is our repository for STAT 571A Project, Fall 2023
 
-Data set:
+## Data source:
 https://www.eia.gov/consumption/residential/data/2020/index.php?view=microdata
 
-Overleaf link:
-https://www.overleaf.com/9155329622mgpmtshrfktj#a0b7e2
+rawdata: ``
