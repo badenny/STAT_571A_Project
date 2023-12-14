@@ -3,13 +3,13 @@ This is our repository for STAT 571A Project, Fall 2023
 
 Our topic is "Insights from the US Residential Energy Consumption Survey."
 
-## Data source:
+## Data source
 https://www.eia.gov/consumption/residential/data/2020/index.php?view=microdata
 
 Rawdata: `recs2020_public_v5.csv`
 
 Metadata for variable description:  `Abbreviations_2020_RECS.pdf`
-## Main Questions:
+## Main Questions
 ### (1) What is the relationship between home size, home quality, air conditioning and electricity consumption in Arizona?
 
 Contributor: Bud Denny
