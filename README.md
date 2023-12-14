@@ -16,7 +16,7 @@ Contributor: Bud Denny
 ### Question (2)
 Does lighting meaningfully impact electricity consumption?
 
-Contributor: Uday Tayler
+Contributor: Uday Talwer
 ### Question (3)
 Which predictors in the survey are the most salient to predict energy consumption?
 
