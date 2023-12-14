@@ -8,25 +8,21 @@ Rawdata: `recs2020_public_v5.csv`
 
 Metadata for variable description:  `Abbreviations_2020_RECS.pdf`
 ## Main Questions:
-### Question (1)
-What is the relationship between home size, home quality, air conditioning and electricity
+### (1) What is the relationship between home size, home quality, air conditioning and electricity
 consumption in Arizona?
 
 Contributor: Bud Denny
-### Question (2)
-Does lighting meaningfully impact electricity consumption?
+### (2) Does lighting meaningfully impact electricity consumption?
 
 Contributor: Uday Talwar
-### Question (3)
-Which predictors in the survey are the most salient to predict energy consumption?
+### (3) Which predictors in the survey are the most salient to predict energy consumption?
 
 Contributor: Sungmin Ji
-### Question (4)
-Does the model work for the electricity consumption in other states?
+### (4) Does the model work for the electricity consumption in other states?
 
 Contributor: Yulong Zhao
 
-## Code work
+## Code works
 Exploratory Data Analyses and Feature Screening Procedure are uploaded on `Exploration`.
 
 Statistical Data Analyses are uploaded on `Questions`.
